@@ -1,7 +1,12 @@
 import network
-def reset_wifi():
+from machine import Pin
 
+
+def reset_wifi():
     # Désactive les interfaces Wi-Fi pour nettoyer l'état
+    LED_R = Pin(6, Pin.OUT)
+    LED_R.on()
+    
     print("🔁 Resetting all Wi-Fi interfaces...")
 
     sta = network.WLAN(network.STA_IF)
@@ -13,4 +18,4 @@ def reset_wifi():
     ap.disconnect()
 
     print("✅ Wi-Fi interfaces reset.")
-    
+    LED_R.off()
