@@ -1,4 +1,4 @@
-# Run this script to perform a test to connect the Pico W to a wifi network. Please not that this is only meant for testing.
+# Run this script to perform a test to connect the Pico W to a wifi network. Please note that this is only meant for testing.
 
 import network
 import time
@@ -17,8 +17,8 @@ network.WLAN(network.STA_IF).disconnect()
 network.WLAN(network.AP_IF).disconnect()
 
 # Credentials to connect to Pico W to a network
-ssid = "WD7590u"
-password = "wybxi5-xyVfiv-roxgop"
+ssid = "CHANGEME"
+password = "CHANGEME"
 
 print("→ Starting WiFi test...")
 
