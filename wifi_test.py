@@ -1,42 +1,14 @@
-# import network
-# import time
-# import utime
+# Run this script to connect to Pico W to a Wifi network.
 
-# ssid = "pico_test"
-# password = "12345678"
-
-# print("→ Starting WiFi test...")
-
-# # try : 
-# wlan = network.WLAN(network.STA_IF)
-
-# wlan.active(True)
-# wlan.connect(ssid, password)
-
-# for i in range(15):
-#     status = wlan.status()
-#     print(f"Status: {status}")
-#     if wlan.isconnected():
-#         print("✅ Connected! IP:", wlan.ifconfig()[0])
-#         break
-#     time.sleep(1)
-# if wlan.isconnected():
-#     print("✅ Connected to local network")
-#     print("IP address:", wlan.ifconfig()[0])
-# else:
-#     print("❌ Not connected")
-
-# print("❌ Final status:", wlan.status())
-# utime.sleep(5)
-# print("→ Disconnecting...")
-# wlan.active(False)
-# wlan.disconnect()
-# # except Exception as e:
-# print("❌ Error initializing WLAN:")
-# wlan = None
 import network
 import time
 import utime
+from machine import Pin
+
+# LEDs mapping
+
+LED_R = Pin(6, Pin.OUT) # Not OK
+LED_B = Pin(9, Pin.OUT) # OK
 
 # ❗ Désactive AP mode s'il est actif
 network.WLAN(network.AP_IF).active(False)
@@ -44,8 +16,9 @@ network.WLAN(network.STA_IF).active(False)
 network.WLAN(network.STA_IF).disconnect()
 network.WLAN(network.AP_IF).disconnect()
 
-ssid = "pico_test"
-password = "12345678"
+# Credentials to connect to Pico W to a network
+ssid = "wifi_ssid" # ENTER WIFI SSID
+password = "wifi_password" # ENTER WIFI PASSWORD
 
 print("→ Starting WiFi test...")
 
@@ -57,6 +30,12 @@ try:
     for i in range(15):
         status = wlan.status()
         print(f"Status: {status}")
+        if status == 3:
+            LED_B.on()
+        else:
+            LED_B.on()
+            time.sleep(0.1)
+            LED_B.off()
         if wlan.isconnected():
             print("✅ Connected! IP:", wlan.ifconfig()[0])
             break
@@ -78,3 +57,4 @@ try:
 except Exception as e:
     print("❌ Error initializing WLAN:", e)
     wlan = None
+
