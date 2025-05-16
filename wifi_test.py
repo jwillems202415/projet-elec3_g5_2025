@@ -17,8 +17,8 @@ network.WLAN(network.STA_IF).disconnect()
 network.WLAN(network.AP_IF).disconnect()
 
 # Credentials to connect to Pico W to a network
-ssid = "CHANGEME"
-password = "CHANGEME"
+ssid = "WIFI"
+password = "PASSWORD"
 
 print("→ Starting WiFi test...")
 
@@ -45,9 +45,12 @@ try:
         print("✅ Connected to local network")
         print("IP address:", wlan.ifconfig()[0])
     else:
+        LED_R.on()
         print("❌ Not connected")
         print("❌ Final status:", wlan.status())
         # return -1
+        utime.sleep(5)
+        LED_R.off()
 
     utime.sleep(5)
     print("→ Disconnecting...")
@@ -56,6 +59,8 @@ try:
     LED_B.off()
 
 except Exception as e:
+    LED_R.on()
     print("❌ Error initializing WLAN:", e)
     wlan = None
-
+    utime.sleep(5)
+    LED_R.off()
