@@ -8,6 +8,7 @@ Simplement brancher le Pico avec un câble adapté à votre ordinateur, ouvrir T
 ## Structure de fichiers
 
 Voici la structure actuelle des fichiers :
+```
 .
 ├── ap_templates
 │   ├── configured.html
@@ -40,6 +41,7 @@ Voici la structure actuelle des fichiers :
 ├── safety.py
 ├── send_data.py
 └── victim_counter.py
+```
 
 ### ap_templates/
 
