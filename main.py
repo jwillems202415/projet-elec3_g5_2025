@@ -14,6 +14,8 @@ LED_R = Pin(6, Pin.OUT)
 LED_B = Pin(9, Pin.OUT)
 LED_W = Pin(4, Pin.OUT)
 
+BUTTON = Pin(13, Pin.IN, Pin.PULL_DOWN)
+
 AP_NAME = "eduroam guest"
 AP_DOMAIN = "Microsoft.com"
 AP_TEMPLATE_PATH = "ap_templates"
@@ -21,6 +23,20 @@ WIFI_FILE = "wifi.json"
 WIFI_MAX_ATTEMPTS = 3
 user_WIFI = "my_wifi"
 PASSWORD_WIFI = "its_password"
+
+def shutdown_watchdog():
+    BUTTON = Pin(13, Pin.IN, Pin.PULL_UP)
+
+    while True:
+        if BUTTON.value() == 0:  # Button is pressed
+            print("🛑 Shutdown button pressed!")
+            LED_R.off()
+            LED_B.off()
+            LED_W.off()
+            # Optional: disable networking or clean up other hardware
+            utime.sleep(0.5)  # debounce delay
+            machine.reset()  # or machine.deepsleep(), or just loop forever
+        utime.sleep(0.1)  # Check every 100ms
 
 def machine_reset():
     """Reboots the Pico W"""
@@ -38,8 +54,6 @@ def setup_mode():
     - Collects Wi-Fi credentials through a web form."""
 
     print("Entering setup mode...")
-
-    start_display()
     
     def serve_static(request, path):
         """Serves static files (CSS, images)"""
@@ -162,6 +176,7 @@ except Exception:
     setup_mode()
     # ✅ Lance le serveur
     print("Starting server...")
+    _thread.start_new_thread(shutdown_watchdog, ())
     while(True):
         server.run()
 
