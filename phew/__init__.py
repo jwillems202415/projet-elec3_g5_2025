@@ -9,6 +9,7 @@ gc.threshold(50000)
 # phew! the Pico (or Python) HTTP Endpoint Wrangler
 from . import logging
 
+from machine import Pin
 # determine if remotely mounted or not, changes some behaviours like
 # logging truncation
 remote_mount = False
@@ -16,6 +17,14 @@ try:
   os.statvfs(".") # causes exception if remotely mounted (mpremote/pyboard.py)
 except:
   remote_mount = True
+
+LED_W = Pin(4, Pin.OUT)
+
+def activity_light():
+    """Makes the white led blink to indicate activity"""
+    LED_W.off()
+    time.sleep(0.01)
+    LED_W.on()
 
 def get_ip_address():
   import network
@@ -32,33 +41,6 @@ def is_connected_to_wifi():
 # helper method to quickly get connected to wifi
 def connect_to_wifi(ssid, password, timeout_seconds=10):
   import network, time
-  # print ("DEBUG : Connecting to wifi...")
-  # print("→ Starting WiFi test...")
-  # ssid = "pico_test"
-  # password = "12345678"
-  
-  # wlan = network.WLAN(network.STA_IF)
-  # wlan.active(True)
-  # wlan.connect(ssid, password)
-  # ssid = "pico_test"
-  # password = "12345678"
-  # for i in range(15):
-  #   status = wlan.status()
-  #   print(f"Status: {status}")
-  #   if wlan.isconnected():
-  #       print("✅ Connected! IP:", wlan.ifconfig()[0])
-  #       break
-  #   time.sleep(1)
-  # if wlan.isconnected():
-  #   print("✅ Connected to local network")
-  #   print("IP address:", wlan.ifconfig()[0])
-  # else:
-  #   print("❌ Not connected")
-
-  # print("❌ Final status:", wlan.status())
-  # return wlan.ifconfig()[0]
-
-
 
   statuses = {
     network.STAT_IDLE: "idle",
@@ -78,6 +60,7 @@ def connect_to_wifi(ssid, password, timeout_seconds=10):
   logging.debug(f"  - {statuses[status]}")
   while not wlan.isconnected() and (time.ticks_ms() - start) < (timeout_seconds * 1000):
       current_status = wlan.status()
+      activity_light()
       print(f"Status: {current_status} ({statuses.get(current_status, 'unknown')})")
       time.sleep(1)
   print(f"[!] Final status: {wlan.status()} ({statuses.get(wlan.status(), 'unknown')})")
