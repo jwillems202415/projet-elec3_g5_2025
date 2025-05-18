@@ -1,3 +1,5 @@
+# Call this script to reset all leds.
+
 from machine import Pin
 
 LED_R = Pin(6, Pin.OUT)

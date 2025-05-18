@@ -5,9 +5,10 @@ __version__ = "0.0.2"
 # allocate relatively large blocks of ram.
 import gc, os, machine
 gc.threshold(50000)
+import time
 
 # phew! the Pico (or Python) HTTP Endpoint Wrangler
-from . import logging
+# from . import logging
 
 from machine import Pin
 # determine if remotely mounted or not, changes some behaviours like
@@ -39,39 +40,46 @@ def is_connected_to_wifi():
   return wlan.isconnected()
 
 # helper method to quickly get connected to wifi
-def connect_to_wifi(ssid, password, timeout_seconds=10):
-  import network, time
+def connect_to_wifi(ssid, password, timeout_seconds=20):
+    import network, time
 
-  statuses = {
-    network.STAT_IDLE: "idle",
-    network.STAT_CONNECTING: "connecting",
-    network.STAT_WRONG_PASSWORD: "wrong password",
-    network.STAT_NO_AP_FOUND: "access point not found",
-    network.STAT_CONNECT_FAIL: "connection failed",
-    network.STAT_GOT_IP: "got ip address"
-  }
-  print(f"DEBUG : Connecting to {ssid} with password {password}")
-  wlan = network.WLAN(network.STA_IF)
-  wlan.active(True)    
-  wlan.connect(ssid, password)
-  start = time.ticks_ms()
-  status = wlan.status()
+    statuses = {
+        network.STAT_IDLE: "idle",
+        network.STAT_CONNECTING: "connecting",
+        network.STAT_WRONG_PASSWORD: "wrong password",
+        network.STAT_NO_AP_FOUND: "access point not found",
+        network.STAT_CONNECT_FAIL: "connection failed",
+        network.STAT_GOT_IP: "got ip address"
+    }
 
-  logging.debug(f"  - {statuses[status]}")
-  while not wlan.isconnected() and (time.ticks_ms() - start) < (timeout_seconds * 1000):
-      current_status = wlan.status()
-      activity_light()
-      print(f"Status: {current_status} ({statuses.get(current_status, 'unknown')})")
-      time.sleep(1)
-  print(f"[!] Final status: {wlan.status()} ({statuses.get(wlan.status(), 'unknown')})")
-    
+    print(f"DEBUG : Connecting to {ssid} with password {password}")
 
+    # 🛑 Disable AP mode first
+    ap = network.WLAN(network.AP_IF)
+    ap.active(False)
 
-  if wlan.status() == network.STAT_GOT_IP:
-    return wlan.ifconfig()[0]
-  logging.debug(f"  - Final status: {statuses.get(wlan.status(), wlan.status())}")
+    # 🔁 Re-initialize STA interface
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(False)
+    time.sleep(1)
+    wlan.active(True)
 
-  return None
+    wlan.connect(ssid, password)
+    start = time.ticks_ms()
+
+    while not wlan.isconnected() and (time.ticks_ms() - start) < (timeout_seconds * 1000):
+        status = wlan.status()
+        activity_light()
+        print(f"Status: {status} ({statuses.get(status, 'unknown')})")
+        time.sleep(1)
+
+    final_status = wlan.status()
+    print(f"[!] Final status: {final_status} ({statuses.get(final_status, 'unknown')})")
+
+    if final_status == network.STAT_GOT_IP:
+        return wlan.ifconfig()[0]
+
+    return None
 
 
 # helper method to put the pico into access point mode

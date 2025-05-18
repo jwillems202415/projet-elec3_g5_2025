@@ -2,12 +2,34 @@ from machine import Pin
 import json
 import time
 import urequests
-import _thread
 
 FIREBASE_URL = "https://electronique-4d008-default-rtdb.europe-west1.firebasedatabase.app/pipico.json"
 
-# Fonction pour obtenir le nombre de victimes depuis Firebase
+def display_victims_count_once():
+    try:
+        count = get_victims_count_from_firebase()
+        print(f"Displaying victim count: {count} for 5 seconds")
+        
+        display_victims_count_for_duration(count, 5)
+        
+        bcd_pins = [Pin(n, Pin.OUT) for n in [18, 26, 22, 19]]
+        digits = [Pin(27, Pin.OUT), Pin(28, Pin.OUT)]
+        
+        for pin in bcd_pins:
+            pin.value(0)
+        for digit in digits:
+            digit.value(0)
+            
+        print("Display completed")
+        
+    except Exception as e:
+        print(f"Error displaying victim count: {e}")
+        LED_R.on()
+        time.sleep(1)
+        LED_R.off()
+
 def get_victims_count_from_firebase():
+    """Getting the number of victims from the database"""
     try:
         response = urequests.get(FIREBASE_URL)
         
@@ -25,14 +47,14 @@ def get_victims_count_from_firebase():
             else:
                 count = 0
                 
-            print(f"Nombre de victimes dans Firebase: {count}")
+            print(f"Number of victims: {count}")
             return count
         else:
-            print(f"Erreur lors de la récupération des données: {response.status_code}")
+            print(f"Error when fetching data: {response.status_code}")
             response.close()
             return 0
     except Exception as e:
-        print(f"Exception lors de la récupération des données: {e}")
+        print(f"Exception when fetching data: {e}")
         try:
             response.close()
         except:
@@ -41,6 +63,7 @@ def get_victims_count_from_firebase():
         return 0
 
 def display_victims_count_for_duration(display_value, duration_seconds):
+    """Display a number on the 7-segment display for a specified duration"""
     try:
         bcd_pins = [Pin(n, Pin.OUT) for n in [18, 26, 22, 19]]
         digits = [Pin(27, Pin.OUT), Pin(28, Pin.OUT)]
@@ -92,51 +115,9 @@ def display_victims_count_for_duration(display_value, duration_seconds):
             time.sleep(0.005)
             digits[1].value(0)
     except Exception as e:
-        print(f"Erreur dans l'affichage: {e}")
+        print(f"Error in display: {e}")
         try:
             for digit in digits:
                 digit.value(0)
         except:
             pass
-
-# Fonction pour afficher continuellement le nombre de victimes
-def display_victims_count_loop():
-    update_interval = 30 # Récupérer les données toutes les 30 secondes
-    last_known_count = 0 # Variable pour stocker le dernier compte connu
-    
-    for i in range(1000):
-        try:
-            count = get_victims_count_from_firebase()
-            if count > 0 or count == 0 and last_known_count == 0:
-                # Mettre à jour seulement si un nombre valide est reçu
-                last_known_count = count
-            
-            # Afficher le nombre pendant l'intervalle de mise à jour
-            display_time = 5
-            cycles = max(1, update_interval // display_time)
-            
-            for _ in range(cycles):
-                display_victims_count_for_duration(last_known_count, display_time)
-                time.sleep(0.1)
-            
-        except Exception as e:
-            print(f"Erreur dans la boucle d'affichage: {e}")
-            # Afficher quand même la dernière valeur connue en cas d'erreur
-            try:
-                display_victims_count_for_duration(last_known_count, 5)
-            except:
-                pass
-            time.sleep(5)
-
-# Fonction pour démarrer l'affichage dans un thread séparé
-def start_display():
-    try:
-        _thread.start_new_thread(display_victims_count_loop, ())
-        print("Affichage du compteur de victimes démarré")
-    except Exception as e:
-        print(f"Erreur au démarrage de l'affichage: {e}")
-        try:
-            time.sleep(2)
-            _thread.start_new_thread(display_victims_count_loop, ())
-        except:
-            print("Impossible de démarrer le thread d'affichage")

